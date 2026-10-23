@@ -1,0 +1,19 @@
+# ===== 本地敏感配置（含飞驼账号密码、飞书 App ID/Secret、Webhook 密钥）=====
+# 这些文件只保留在本机，绝不提交到仓库
+config.json
+**/config.json
+
+# ===== Python 缓存 =====
+__pycache__/
+*.py[cod]
+*.pyo
+
+# ===== PyInstaller 打包产物（exe 可用 物流状态查询.spec 重新生成）=====
+build/
+dist/
+*.manifest
+
+# ===== 临时文件、日志、截图 =====
+tmp_*
+*.log
+.screenshots/
