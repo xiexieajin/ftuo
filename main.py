@@ -1943,6 +1943,7 @@ class MainWindow(QMainWindow):
         tip = mk_label(
             "取值来源格式（用 - 连接）：terminalplan-open | places-type2-etd | "
             "containers-desc-进场-eventTime | containers-code-PASS-eventTime | "
+            "containers-desc-actual-提柜(货)-eventTime | "
             "containers-desc-contains-查验-eventTime | places-type4-vessel/voyage",
             "FieldLabel", selectable=False)
         tip.setWordWrap(True)

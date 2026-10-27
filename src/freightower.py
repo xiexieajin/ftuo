@@ -618,11 +618,11 @@ _FIELD_NOTES = {
     ("目的港", "预计到港时间"): "取 type4 下面的 eta",
     ("目的港", "实际到港时间"): "取 type4 下面的 ata",
     ("目的港", "卸船时间"): "取 status 的 descriptionCn：卸船 eventTime",
-    ("目的港", "可提重时间"): "只有MSC、OOCL、ZIM、MATS能获取可提时间",
-    ("目的港", "提重时间"): "取 status 的 descriptionCn：提柜(货) eventTime",
+    ("目的港", "可提重时间"): "取提柜(货)节点 isEsti=Y 的预测时间",
+    ("目的港", "提重时间"): "取提柜(货)节点 isEsti=N 的实际时间",
     ("目的港", "还空时间"): "取 status 的 descriptionCn：还空箱 eventTime",
-    ("目的港", "目的港查验"): "只有OOCL、ZIM、MATS能获取",
-    ("目的港", "目的港放行"): "只有OOCL、ZIM、MATS能获取",
+    ("目的港", "目的港查验"): "默认为空（不取值）",
+    ("目的港", "目的港放行"): "默认为空（不取值）",
     ("目的港", "IPI实际发车时间"): "type4与type5 code不一致且transportMode_out=RAIL时，取type4的atd",
     ("目的港", "IPI预计到达时间"): "同上条件，取type5的eta",
     ("目的港", "IPI实际到达时间"): "同上条件，取type5的ata",
@@ -707,6 +707,8 @@ def _resolve_source(result, source):
       terminalplan-portClose                    港区计划对象里的字段
       places-type2-etd                          places 里 type=2 的地点取 etd
       containers-desc-进场-eventTime            status 里中文名=进场 的节点取 eventTime
+      containers-desc-actual-提柜(货)-eventTime  status 里中文名=提柜(货) 且 isEsti=N（实际）的时间
+      containers-desc-esti-提柜(货)-eventTime    status 里中文名=提柜(货) 且 isEsti=Y（预测）的时间
       containers-code-PASS-eventTime            status 里事件码=PASS 的节点取 eventTime
       containers-exists-PASS-已放行              存在事件码=PASS（且有时间）的节点就输出文案"已放行"
       containers-code-first-GTOT-eventTime      全节点里【第一条】事件码=GTOT 的节点取 eventTime
@@ -751,6 +753,10 @@ def _resolve_source(result, source):
         if mode == "desc":
             if len(parts) > 2 and parts[2] == "contains":
                 return _time_by_desc_contains(nodes, parts[3])
+            # containers-desc-actual-提柜(货)-eventTime → 只取 isEsti=N 的实际时间
+            # containers-desc-esti-提柜(货)-eventTime   → 只取 isEsti=Y 的预测时间
+            if len(parts) > 3 and parts[2] in ("actual", "esti"):
+                return _time_by_desc_kind(nodes, parts[3], parts[2])
             return _time_by_desc(nodes, parts[2])
         if mode == "exists":
             # containers-exists-PASS-已放行
@@ -840,6 +846,38 @@ def _time_by_desc(nodes, desc):
     for n in nodes:
         if n["descriptionCn"] == desc:
             return n["eventTime"]
+    return ""
+
+
+def _time_by_desc_kind(nodes, desc, kind):
+    """按节点中文名 + "实际/预计"筛选时间（提重/可提重字段专用）。
+
+    和 _time_by_desc 的区别：
+      · _time_by_desc 会优先挑"实际发生"的节点，取不到再退到预计的；
+      · 本函数严格只认指定类型，绝不互退 —— 取不到就返回空。
+
+    业务场景（目的港提柜节点 STCS，中文名"提柜(货)"）：
+      · 可提重时间 = 预测时间（isEsti=Y）：货还没提走，显示船司预计的可提时间
+      · 提重时间   = 实际时间（isEsti=N）：货已实际提走，显示真实提柜时间
+
+    参数：
+        nodes: _collect_status_nodes 拍平的节点列表
+        desc:  中文节点名，如 "提柜(货)"
+        kind:  "actual" 只算实际发生（isEsti≠Y）/ "esti" 只算预测（isEsti=Y）
+    返回：
+        第一个符合条件的节点时间字符串；没有符合条件的节点 → ""
+    """
+    for n in nodes:
+        if n["descriptionCn"] != desc:
+            continue
+        is_esti = str(n.get("isEsti", "")).upper() == "Y"
+        if kind == "esti" and not is_esti:
+            continue            # 要预测，但这条是实际 → 跳过
+        if kind == "actual" and is_esti:
+            continue            # 要实际，但这条是预测 → 跳过
+        value = _clean_value(n.get("eventTime"))
+        if value:
+            return value
     return ""
 
 

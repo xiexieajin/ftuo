@@ -112,6 +112,8 @@ DEFAULT_FEISHU_FIELD_MAPPING = [
 #             terminalplan-open                    港区计划里的 open 字段
 #             places-type2-etd                     places 里 type=2 的 etd
 #             containers-desc-进场-eventTime       status 里中文名=进场 的 eventTime
+#             containers-desc-actual-提柜(货)-eventTime  提柜(货) 里 isEsti=N（实际）的时间
+#             containers-desc-esti-提柜(货)-eventTime    提柜(货) 里 isEsti=Y（预测）的时间
 #             containers-code-PASS-eventTime       status 里事件码=PASS 的 eventTime
 #             containers-exists-PASS-已放行         存在该事件码的节点就输出文案"已放行"（状态类字段用）
 #             containers-code-first-GTOT-eventTime 全节点里【第一条】事件码=GTOT 的时间
@@ -144,11 +146,11 @@ DEFAULT_FIELD_MAPPING = [
     {"环节": "目的港", "字段名称": "预计到港时间", "英文描述": "ETA", "取值来源": "places-type4-eta"},
     {"环节": "目的港", "字段名称": "实际到港时间", "英文描述": "ATA", "取值来源": "places-type4-ata"},
     {"环节": "目的港", "字段名称": "卸船时间", "英文描述": "Vessel Discharged", "取值来源": "containers-desc-卸船-eventTime"},
-    {"环节": "目的港", "字段名称": "可提重时间", "英文描述": "Available", "取值来源": "containers-code-PCAB-eventTime"},
-    {"环节": "目的港", "字段名称": "提重时间", "英文描述": "Gate Out for Delivery", "取值来源": "containers-desc-提柜(货)-eventTime"},
+    {"环节": "目的港", "字段名称": "可提重时间", "英文描述": "Available", "取值来源": "containers-desc-esti-提柜(货)-eventTime"},
+    {"环节": "目的港", "字段名称": "提重时间", "英文描述": "Gate Out for Delivery", "取值来源": "containers-desc-actual-提柜(货)-eventTime"},
     {"环节": "目的港", "字段名称": "还空时间", "英文描述": "Empty Returned", "取值来源": "containers-desc-还空箱-eventTime"},
-    {"环节": "目的港", "字段名称": "目的港查验", "英文描述": "Inspection", "取值来源": "containers-desc-contains-查验-eventTime"},
-    {"环节": "目的港", "字段名称": "目的港放行", "英文描述": "Destination Released", "取值来源": "containers-desc-contains-放行-eventTime"},
+    {"环节": "目的港", "字段名称": "目的港查验", "英文描述": "Inspection", "取值来源": ""},
+    {"环节": "目的港", "字段名称": "目的港放行", "英文描述": "Destination Released", "取值来源": ""},
     # IPI（内陆联运）：有固定判断条件（type4与type5 code不一致 + transportMode_out=RAIL）
     {"环节": "目的港", "字段名称": "IPI实际发车时间", "英文描述": "IPI ATD", "取值来源": "places-type4-atd"},
     {"环节": "目的港", "字段名称": "IPI预计到达时间", "英文描述": "IPI ETA", "取值来源": "places-type5-eta"},
@@ -289,7 +291,9 @@ OBSOLETE_FIELD_ROWS = {
 # 旧配置里存的旧表达式会被覆盖（其它字段仍保留用户自定义）。
 # 原因：业务口径由程序定义，升级口径后不能因为配置文件里存着旧表达式而继续用旧口径。
 # 2026-10-16：尾程卡车"到达"从 GTIN 卡车进场 改为 FETA 交货地抵达；
-# 2026-10-17：起运港"海关状态"从"放行时间"改为"状态文案（已放行）"。
+# 2026-10-17：起运港"海关状态"从"放行时间"改为"状态文案（已放行）"；
+# 2026-10-27：目的港"可提重时间/提重时间"改为按提柜(货)节点的 isEsti 拆分
+#            （预测→可提重、实际→提重），旧配置里的 PCAB/普通表达式会被覆盖。
 CODE_OWNED_FIELDS = {
     # 尾程卡车 4 项（口径由程序统一维护）
     ("尾程卡车", "卡车实际发出时间"),
@@ -298,6 +302,9 @@ CODE_OWNED_FIELDS = {
     ("尾程卡车", "卡车预计到达时间"),
     # 海关状态：显示形式变更（时间 → 状态文案）
     ("起运港", "海关状态"),
+    # 提重：实际/预测按 isEsti 拆分到两个字段
+    ("目的港", "可提重时间"),
+    ("目的港", "提重时间"),
 }
 
 
